@@ -30,12 +30,14 @@ cdef class Store(object):
     cdef public long operator_id
     cdef public long x
     cdef public long y
+    cdef public long tick_open
      
     def __init__(self, gsid, operator_id, x, y):
         self.gsid = gsid
         self.operator_id = operator_id
         self.x = x
         self.y = y
+        self.tick_open = -1
 
 cdef class Retailer(object):
 

@@ -81,6 +81,12 @@ def evolutionary_allocation(N, O, retailers, rmin):
     
     return stores
 
+def assing_open_ticks(stores, T):
+    
+    L = len(stores)
+    for store in stores.values():
+        store.tick_open = -1
+
 
 class Sim():
 

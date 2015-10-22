@@ -1,0 +1,19 @@
+model_parameters:
+  agents : 
+    N : 40000
+    max_r : 10.0
+    r_exp : 2.0
+  operators : 
+    N : 8
+    shares:
+      - 0.32
+      - 0.2
+      - 0.2
+      - 0.13
+      - 0.06
+      - 0.04
+      - 0.03
+      - 0.02
+    rmin : 7.0
+  ticks : 104
+  stores: 400

@@ -1,6 +1,6 @@
 model_parameters:
   agents : 
-    N : 40000
+    N : 10000
     max_r : 10.0
     r_exp : 2.0
   operators : 
@@ -16,4 +16,4 @@ model_parameters:
       - 0.02
     rmin : 7.0
   ticks : 104
-  stores: 400
+  stores: 100

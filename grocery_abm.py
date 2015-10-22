@@ -19,7 +19,7 @@ def allocateIncome(agent, N):
 
 def random_alloction(N, O, nstores):
     gsid = 0
-    stores = {}
+    stores = []
     sigs = set()
     for operator in range(O):
         for n in range(nstores[operator]):
@@ -31,14 +31,14 @@ def random_alloction(N, O, nstores):
                     break
             sigs.add(sig)
             store = Store(gsid, operator, x, y)
-            stores[gsid] = store
+            stores.append( store )
             gsid += 1
     return stores
 
 def evolutionary_allocation(N, O, retailers, rmin):
     
     gsid = 0
-    stores = {}
+    stores = []
     sigs = set()
     ns = {}
     total = 0
@@ -65,7 +65,7 @@ def evolutionary_allocation(N, O, retailers, rmin):
             if found == 0:
                 sigs.add((x,y))
                 store = Store(gsid, operator, x, y)
-                stores[gsid] = store
+                stores.append(store)
                 gsid += 1
                 ns[operator] += 1
                 n += 1
@@ -131,7 +131,7 @@ class Sim():
         #self.nstores = nstores
         nsq = int(np.sqrt(self.N))
         self.stores = evolutionary_allocation(nsq, self.O, self.retailers, self.rmin)
-        
+        self.stores = np.asarray(self.stores)
         
         # Create agents
         self.agents = []
@@ -140,8 +140,9 @@ class Sim():
             for j in range(nsq):
                 agent = Agent(i, j)
                 self.agents.append(agent)
+        self.agents = np.asarray(self.agents)
         
-        m_int, m_float = calculate_agents_shortlist_and_prob(self.agents, self.stores, self.N, self.O, 
+        m_int, m_float = calculate_agents_shortlist_and_prob(self.agents, self.stores, self.N, self.O, len(self.stores),
                                             max_r = self.max_r, r_exp = self.r_exp)
         self.m_int = m_int
         self.m_float = m_float
@@ -166,8 +167,7 @@ class Sim():
         df_operator = pd.DataFrame(self.collector_operator.T , columns = ['operator_%d' % d for d in range(self.O)])
         store['operators'] = df_operator
         
-        gsids = self.stores.keys()
-        gsids.sort()
+        gsids = [_store.gsid for _store in self.stores]
         df_stores = pd.DataFrame(self.collector_gsid.T, columns = ['S%d' % d for d in gsids] )
         store['stores'] = df_stores
         
@@ -187,46 +187,19 @@ class Sim():
             row.extend( m_float[i][0].tolist() )
             row.extend( m_int[i][1].tolist() )
             row.extend( m_float[i][1].tolist() )
-            
-            #row.extend( agent.gsid.tolist() )
-            #row.extend( agent.r.tolist() )
-            #row.extend( agent.operator_id.tolist() )
-            #row.extend( agent.prob.tolist() )
-            
+                
             rows.append( row )
         df_agents = pd.DataFrame.from_records(rows, columns = columns)
         store['agents'] = df_agents
         
-        gsids = self.stores.keys()
-        gsids.sort()
         rows = []
-        for gsid in gsids:
-            _store = self.stores[gsid]
-            row = [gsid, _store.operator_id, _store.x, _store.y]
+        for _store in self.stores:
+            
+            row = [_store.gsid, _store.operator_id, _store.x, _store.y]
             rows.append(row)
         df_stores_data = pd.DataFrame.from_records(rows, columns = ['gsid', 'operator_id', 'x','y'])
         store['stores_data'] = df_stores_data
         
-        # TP = 52
-        # d = {}
-        # num = 0
-        # for agent in self.agents:
-        #     s = agent.prob.sum()
-        #     if s > 0.0 :
-        #         num += 1
-        # f = 100.0 / num
-        
-        # for op in range(self.O):
-        #     y = []
-        #     for t in range(self.T):
-        #         n = 0
-        #         for agent in self.agents:
-        #             if t - agent.penetration[op][t] < TP:
-        #                 n += 1
-        #         y.append(n * f)
-        #     d[op] = y
-        # x = [t for t in range(self.T)]
-        # df_penetration = pd.DataFrame(np.asarray( [d[op] for op in range(self.O)] ).T, columns = ['operator_%d' % d for d in range(self.O)])
         df_penetration = pd.DataFrame(self.collector_penetration.T, columns = ['operator_%d' % d for d in range(self.O)] )
         store['penetration'] = df_penetration
         
@@ -247,5 +220,3 @@ if __name__ == '__main__':
     sim.run()
     sim.posprocess()
     
-    #print config
-    #print 'hello'

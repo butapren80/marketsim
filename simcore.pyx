@@ -1,5 +1,6 @@
 import datetime
 import numpy as np
+from cython cimport boundscheck, wraparound, cdivision, initializedcheck
 from libc.math cimport pow as c_power
 from libc.math cimport sqrt as c_sqrt
 from libc.stdlib cimport rand, RAND_MAX, srand
@@ -49,8 +50,10 @@ cdef class Retailer(object):
         self.share = share
         self.operator_id = operator_id
 
-
-cpdef calculate_agents_shortlist_and_prob(agents, stores, long N, long O, double max_r, double r_exp):
+@boundscheck(False) 
+@wraparound(False)
+@cdivision(True)
+cpdef calculate_agents_shortlist_and_prob(Agent [:] agents, Store [:] stores, long N, long O, long S, double max_r, double r_exp):
     cdef Agent agent
     cdef Store store
     cdef int i, j, k, op, n, num_no_store
@@ -65,39 +68,42 @@ cpdef calculate_agents_shortlist_and_prob(agents, stores, long N, long O, double
     b_int = m_int
     b_float = m_float
     
-    for n, agent in enumerate(agents):
+    for aid in range(N):
+        agent = agents[aid]
         i = agent.x
         j = agent.y   
         
         for op in range(O):
             rmins[op] = RMAX
-            b_int[n][2][op] = -100 # last_visit
+            b_int[aid][2][op] = -100 # last_visit
         
-        for store in stores.values():
+        for sid in range(S):
+            store = stores[sid]
             op = store.operator_id
             r = c_sqrt( c_power(i - store.x,2 ) + c_power(j - store.y, 2) )
             if r == 0.0:
                 r = 0.1
             if r < rmins[op]:
-                b_int[n][0][op] = store.gsid # Gloab Store Id
-                b_int[n][1][op] = store.operator_id # Operator Id
+                b_int[aid][0][op] = store.gsid # Gloab Store Id
+                b_int[aid][1][op] = store.operator_id # Operator Id
                 
-                b_float[n][0][op] = r # Distance r
+                b_float[aid][0][op] = r # Distance r
                 rmins[op] = r
                 
             elif r ==  rmins[op]:
                 #if np.random.rand() < 0.5 :
                 if rand()/rmax < 0.5:
-                    b_int[n][0][op] = store.gsid
-                    b_int[n][1][op] = store.operator_id
+                    b_int[aid][0][op] = store.gsid
+                    b_int[aid][1][op] = store.operator_id
                 
-                    b_float[n][0][op] = r
+                    b_float[aid][0][op] = r
     
     num_no_store = 0
-    for n, agent in enumerate(agents):
+    for aid in range(N):
+        agent = agents[aid]
         i = agent.x
         j = agent.y
-        _r = m_float[n][0]
+        _r = m_float[aid][0]
         
         rf = _r < max_r
         
@@ -108,31 +114,33 @@ cpdef calculate_agents_shortlist_and_prob(agents, stores, long N, long O, double
         else:
             prob = prob / prob.sum()
         
-        m_float[n][1] = prob # Visit probability
+        m_float[aid][1] = prob # Visit probability
         agent.total_prob = prob.sum()
-        #print m_float[n][1]
+        #print m_float[aid][1]
 
     print 'Locations without operator:', num_no_store
     return m_int, m_float
 
 
-    
-    
 
-
-def tick_loop(int T, int N, int O, list agents, long [:,:,:] m_int, double [:,:,:] m_float, 
+@boundscheck(False) 
+@wraparound(False)
+@cdivision(True)
+def tick_loop(int T, int N, int O, Agent [:] agents, long [:,:,:] m_int, double [:,:,:] m_float, 
               long [:,:] collector_penetration, long [:,:] collector_operator, long [:,:] collector_gsid):
     cdef int aid, t, pos, gsid, op
     cdef double [:] prob
     cdef double total_prob, ps
     cdef long [:] gsids, ops, last_visit
+    cdef Agent agent
     
     cdef long TP = 52
     
     for t in range(T):
         print datetime.datetime.now(), 'tick:', t
-        for aid, agent in enumerate(agents):
-        
+        for aid in range(N):
+            
+            agent = agents[aid]
             prob =  m_float[aid][1] #agent.prob
             gsids = m_int[aid][0] #agent.gsid
             ops = m_int[aid][1] #agent.operator_id
